@@ -6,3 +6,5 @@ The application allows you to view the states of the axes and buttons, as well a
 
 The application may not work correctly due to this bug: https://bugzilla.libsdl.org/show_bug.cgi?id=2309
 To fix this, recompile SDL after applying the diff attached to the page.
+
+gamecontrollerdb.txt comes from gabomdq's repo here: https://github.com/gabomdq/SDL_GameControllerDB

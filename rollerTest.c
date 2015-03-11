@@ -48,7 +48,8 @@ void TryRemoveControllers() {
 				if(activeRoller == i) {
 					scrollThroughGamepads();
 				}
-				return;
+
+				i--;
 			}
 		}
 	}
@@ -143,6 +144,11 @@ void printTabBar() {
 int main() {
 	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) != 0){
 		printf("Could not init SDL\n");
+		return 1;
+	}
+
+	if(SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
+		printf("Failed to load mappings from \"gamecontrollerdb.txt\"\n");
 		return 1;
 	}
 
