@@ -4,55 +4,125 @@
 #define BAR_SIZE 40
 #define NUM_ROLLERS 4
 
-void scrollThroughGamepads();
-
 SDL_GameController* pads[NUM_ROLLERS];
 SDL_Haptic* padHaptics[NUM_ROLLERS];
 int activeRoller;
 int numRollers;
 
-void TryAddControllers()
-{
-	if (numRollers < SDL_NumJoysticks()){
-		SDL_GameController *pad = SDL_GameControllerOpen(numRollers);
-		if(pad) {
-			int i;
-			for(i = 0; i < NUM_ROLLERS; i++) {
-				if(!pads[i]) {
-					pads[i] = pad;
-					padHaptics[i] = SDL_HapticOpenFromJoystick(SDL_GameControllerGetJoystick(pad));
-					numRollers++;
+typedef struct rollerState {
+	int lsX, lsY, rsX, rsY, rT, lT;
+	short a, b, x, y, rb, lb, rs, ls, dpUp, dpDown, dpLeft, dpRight, start, back, guide;
+} RollerState;
 
-					if(activeRoller == -1) {
-						activeRoller = i;
-					}
-					return;
-				}
-			}
-		}
+void setRollerButton(RollerState* s, SDL_Event sdlEvent, short targetVal) {
+	switch(sdlEvent.cbutton.button) {
+		case SDL_CONTROLLER_BUTTON_A:
+			s->a = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_B:
+			s->b = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_X:
+			s->x = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_Y:
+			s->y = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_BACK:
+			s->back = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_GUIDE:
+			s->guide = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_START:
+			s->start = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+			s->ls = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+			s->rs = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+			s->lb = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+			s->rb = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_DPAD_UP:
+			s->dpUp = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+			s->dpDown = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+			s->dpLeft = targetVal;
+			break;
+
+		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+			s->dpRight = targetVal;
+			break;
 	}
 }
 
-void TryRemoveControllers() {
-	if(numRollers > SDL_NumJoysticks()){
-		int i;
-		for(i = 0; i < NUM_ROLLERS; i++) {
-			if(pads[i] && !SDL_GameControllerGetAttached(pads[i])) {
-				pads[i] = NULL;
-				if(padHaptics[i]) {
-					SDL_HapticClose(padHaptics[i]);
-					padHaptics[i] = NULL;
-				}
-
-				numRollers--;
-				if(activeRoller == i) {
-					scrollThroughGamepads();
-				}
-
-				i--;
-			}
-		}
+void setRollerAxis(RollerState* s, SDL_Event sdlEvent) {
+	switch(sdlEvent.caxis.axis) {
+		case SDL_CONTROLLER_AXIS_LEFTX:
+			s->lsX = sdlEvent.caxis.value;
+			break;
+		case SDL_CONTROLLER_AXIS_LEFTY:
+			s->lsY = sdlEvent.caxis.value;
+			break;
+		case SDL_CONTROLLER_AXIS_RIGHTX:
+			s->rsX = sdlEvent.caxis.value;
+			break;
+		case SDL_CONTROLLER_AXIS_RIGHTY:
+			s->rsY = sdlEvent.caxis.value;
+			break;
+		case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+			s->lT = sdlEvent.caxis.value;
+			break;
+		case SDL_CONTROLLER_AXIS_TRIGGERRIGHT :
+			s->rT = sdlEvent.caxis.value;
+			break;
 	}
+}
+
+void clearRollerState(RollerState* s) {
+	s->lsX = 0;
+	s->lsY = 0;
+	s->rsX = 0;
+	s->rsY = 0;
+	s->rT = 0;
+	s->lT = 0;
+	s->a = 0;
+	s->b = 0;
+	s->x = 0;
+	s->y = 0;
+	s->rb = 0;
+	s->lb = 0;
+	s->rs = 0;
+	s->ls = 0;
+	s->dpUp = 0;
+	s->dpDown = 0;
+	s->dpLeft = 0;
+	s->dpRight = 0;
+	s->start = 0;
+	s->back = 0;
+	s->guide = 0;
 }
 
 void scrollThroughGamepads() {
@@ -71,12 +141,12 @@ void scrollThroughGamepads() {
 }
 
 void rumble(SDL_GameController* pad, SDL_Haptic* haptic) {
-	if (SDL_HapticRumbleInit( haptic ) != 0) {
+	if (SDL_HapticRumbleInit(haptic) != 0) {
 		printf("Controller \"%s\" does not support rumble\n", SDL_GameControllerName(pad));
 	   	return;
 	}
 
-	SDL_HapticRumblePlay(haptic, 1, 1000);
+	SDL_HapticRumblePlay(haptic, 1, 500);
 }
 
 void printAxis(int val, const char* axisName) {
@@ -142,7 +212,8 @@ void printTabBar() {
 }
 
 int main() {
-	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) != 0){
+	if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | 
+	        		SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) != 0){
 		printf("Could not init SDL\n");
 		return 1;
 	}
@@ -152,57 +223,110 @@ int main() {
 		return 1;
 	}
 
+	int i;
 	numRollers = 0;
 	activeRoller = -1;
+	RollerState activeRollerState;
+
 	while(1) {
 		SDL_Delay(16);
 		printf("\e[1;1H\e[2J");
 
-		TryRemoveControllers();
-	    TryAddControllers();
-
 		SDL_Event sdlEvent;
+		int controllerNum;
+		SDL_GameController* pad;
 		while(SDL_PollEvent(&sdlEvent)) {
-	        if(sdlEvent.type == SDL_QUIT) {
-	        	int i;
-	        	for(i = 0; i < NUM_ROLLERS; i++) {
-	        		SDL_GameControllerClose(pads[i]);
-	        	}
-	        	SDL_QuitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC);
-	        	return 0;
-	        }
+			switch(sdlEvent.type) {
+				case SDL_CONTROLLERDEVICEADDED:
+					controllerNum = sdlEvent.cdevice.which;
+					pad = SDL_GameControllerOpen(controllerNum);
+
+					if(pad) {
+						numRollers++;
+						pads[controllerNum] = pad;
+						padHaptics[controllerNum] = SDL_HapticOpenFromJoystick(
+							SDL_GameControllerGetJoystick(pad));
+
+						if(activeRoller == -1) {
+							activeRoller = controllerNum;
+							clearRollerState(&activeRollerState);
+						}
+					}
+					break;
+
+				case SDL_CONTROLLERDEVICEREMOVED:
+					controllerNum = sdlEvent.cdevice.which;
+					printf("ROLLER %d REMOVED!!!!\n", controllerNum);
+					SDL_GameControllerClose(pads[controllerNum]);
+					numRollers--;
+
+					pads[controllerNum] = NULL;
+					if(padHaptics[controllerNum]) {
+						SDL_HapticClose(padHaptics[controllerNum]);
+						padHaptics[controllerNum] = NULL;
+					}
+
+					if(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller])) == controllerNum) {
+						scrollThroughGamepads();
+					}
+				 	break;
+
+				case SDL_CONTROLLERBUTTONDOWN:
+					if(sdlEvent.cbutton.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
+						setRollerButton(&activeRollerState, sdlEvent, 1);
+					}
+					break;
+
+				case SDL_CONTROLLERBUTTONUP:
+					if(sdlEvent.cbutton.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
+						setRollerButton(&activeRollerState, sdlEvent, 0);
+					}
+					break;
+
+				case SDL_CONTROLLERAXISMOTION:
+					if(sdlEvent.caxis.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
+						setRollerAxis(&activeRollerState, sdlEvent);
+					}
+					break;
+	        
+		        case SDL_QUIT:
+		        	for(i = 0; i < NUM_ROLLERS; i++) {
+		        		SDL_GameControllerClose(pads[i]);
+		        	}
+		        	SDL_QuitSubSystem(SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | 
+		        		SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC);
+		        	return 0;
+		    }
 	    }
 
+		printf("%d rollers (%d is the active one)\n", numRollers, activeRoller);
 	    printTabBar();
 
     	if(activeRoller > -1) {
-	    	printAxis(SDL_GameControllerGetAxis(pads[activeRoller], SDL_CONTROLLER_AXIS_LEFTX), "  Left Stick X");
-	    	printAxis(SDL_GameControllerGetAxis(pads[activeRoller], SDL_CONTROLLER_AXIS_LEFTY), "  Left Stick Y");
-	    	printAxis(SDL_GameControllerGetAxis(pads[activeRoller], SDL_CONTROLLER_AXIS_RIGHTX), " Right Stick X");
-	    	printAxis(SDL_GameControllerGetAxis(pads[activeRoller], SDL_CONTROLLER_AXIS_RIGHTY), " Right Stick Y");
-	    	printAxis(SDL_GameControllerGetAxis(pads[activeRoller], SDL_CONTROLLER_AXIS_TRIGGERLEFT), "  Left Trigger");
-	    	printAxis(SDL_GameControllerGetAxis(pads[activeRoller], SDL_CONTROLLER_AXIS_TRIGGERRIGHT), " Right Trigger");
+	    	printAxis(activeRollerState.lsX, "  Left Stick X");
+	    	printAxis(activeRollerState.lsY, "  Left Stick Y");
+	    	printAxis(activeRollerState.rsX, " Right Stick X");
+	    	printAxis(activeRollerState.rsY, " Right Stick Y");
+	    	printAxis(activeRollerState.lT,  "  Left Trigger");
+	    	printAxis(activeRollerState.rT,  " Right Trigger");
 
-	    	printDPad(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_DPAD_UP),
-	    			  SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_DPAD_DOWN), 
-	    			  SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_DPAD_LEFT), 
-	    			  SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_DPAD_RIGHT));
+	    	printDPad(activeRollerState.dpUp, activeRollerState.dpDown, 
+	    			  activeRollerState.dpLeft, activeRollerState.dpRight);
 
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_A), "           A");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_B), "           B");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_X), "           X");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_Y), "           Y");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_LEFTSHOULDER), "          LB");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), "          RB"); 
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_LEFTSTICK), "  Left Stick");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_RIGHTSTICK), " Right Stick");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_START), "       Start");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_BACK), "        Back");
-	    	printButton(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_GUIDE), "       Guide");
+	    	printButton(activeRollerState.a,     "           A");
+	    	printButton(activeRollerState.b,     "           B");
+	    	printButton(activeRollerState.x,     "           X");
+	    	printButton(activeRollerState.y,     "           Y");
+	    	printButton(activeRollerState.lb,    "          LB");
+	    	printButton(activeRollerState.rb,    "          RB"); 
+	    	printButton(activeRollerState.ls,    "  Left Stick");
+	    	printButton(activeRollerState.rs,    " Right Stick");
+	    	printButton(activeRollerState.start, "       Start");
+	    	printButton(activeRollerState.back,  "        Back");
+	    	printButton(activeRollerState.guide, "       Guide");
 	    	printf("\n");
 
-	    	if(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_LEFTSHOULDER) && 
-	    	   SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
+	    	if(activeRollerState.rb && activeRollerState.lb) {
 	    		printf("Testing rumble.\t");
 	    		rumble(pads[activeRoller], padHaptics[activeRoller]);
 	    	} else {
@@ -211,13 +335,12 @@ int main() {
 
 	    	if(numRollers > 1) {
 	    		printf("Start + Back to move to next Controller.\n");
+	    		if(activeRollerState.start && activeRollerState.back) {
+		    		scrollThroughGamepads();
+		    		clearRollerState(&activeRollerState);
+		    	}
 	    	} else {
 	    		printf("\n");
-	    	}
-
-	    	if(SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_START) && 
-	    	   SDL_GameControllerGetButton(pads[activeRoller], SDL_CONTROLLER_BUTTON_BACK)) {
-	    		scrollThroughGamepads();
 	    	}
 	    }
 	}
