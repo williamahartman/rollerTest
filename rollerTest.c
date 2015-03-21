@@ -4,15 +4,16 @@
 #define BAR_SIZE 40
 #define NUM_ROLLERS 4
 
-SDL_GameController* pads[NUM_ROLLERS];
-SDL_Haptic* padHaptics[NUM_ROLLERS];
-int activeRoller;
-int numRollers;
-
 typedef struct rollerState {
 	int lsX, lsY, rsX, rsY, rT, lT;
 	short a, b, x, y, rb, lb, rs, ls, dpUp, dpDown, dpLeft, dpRight, start, back, guide;
 } RollerState;
+
+SDL_GameController* pads[NUM_ROLLERS];
+SDL_Haptic* padHaptics[NUM_ROLLERS];
+int activeRoller;
+int numRollers;
+RollerState activeRollerState;
 
 void setRollerButton(RollerState* s, SDL_Event sdlEvent, short targetVal) {
 	switch(sdlEvent.cbutton.button) {
@@ -82,6 +83,50 @@ void scrollThroughGamepads() {
 			activeRoller = 0;
 		}
 	} while(!pads[activeRoller]);
+}
+
+void addRollers() {
+	int i;
+	int exit = 0;
+	SDL_GameController* pad = SDL_GameControllerOpen(numRollers);
+
+	if(pad) {
+		for(i = 0; i < NUM_ROLLERS && !exit; i++) {
+			if(!pads[i]) {
+				pads[i] = pad;
+				padHaptics[i] = SDL_HapticOpenFromJoystick(SDL_GameControllerGetJoystick(pad));
+				numRollers++;
+
+				if(activeRoller == -1) {
+					activeRoller = i;
+					clearRollerState(&activeRollerState);
+				}
+				exit = 1;
+			}
+		}
+	}
+}
+
+void removeRollers() {
+	int i;
+	int exit = 0;
+
+	for(i = 0; i < NUM_ROLLERS && !exit; i++) {
+		if(pads[i] && !SDL_GameControllerGetAttached(pads[i])) {
+			pads[i] = NULL;
+			if(padHaptics[i]) {
+				SDL_HapticClose(padHaptics[i]);
+				padHaptics[i] = NULL;
+			}
+
+			numRollers--;
+			if(activeRoller == i) {
+				scrollThroughGamepads();
+				clearRollerState(&activeRollerState);
+			}
+			exit = 1;
+		}
+	}
 }
 
 void rumble(SDL_GameController* pad, SDL_Haptic* haptic) {
@@ -170,7 +215,8 @@ int main() {
 	int i;
 	numRollers = 0;
 	activeRoller = -1;
-	RollerState activeRollerState;
+
+	addRollers();
 
 	while(1) {
 		SDL_Delay(16);
@@ -179,74 +225,13 @@ int main() {
 		SDL_Event sdlEvent;
 		int controllerNum;
 		SDL_GameController* pad;
-		int i;
-		int exit = 0;
 		while(SDL_PollEvent(&sdlEvent)) {
 			switch(sdlEvent.type) {
 				case SDL_CONTROLLERDEVICEADDED:
-					pad = SDL_GameControllerOpen(numRollers);
-					if(pad) {
-						for(i = 0; i < NUM_ROLLERS && !exit; i++) {
-							if(!pads[i]) {
-								pads[i] = pad;
-								padHaptics[i] = SDL_HapticOpenFromJoystick(SDL_GameControllerGetJoystick(pad));
-								numRollers++;
-
-								if(activeRoller == -1) {
-									activeRoller = i;
-								}
-								exit = 1;
-							}
-						}
-					}
-					// controllerNum = sdlEvent.cdevice.which;
-					// pad = SDL_GameControllerOpen(controllerNum);
-
-					// if(pad) {
-					// 	numRollers++;
-					// 	pads[controllerNum] = pad;
-					// 	padHaptics[controllerNum] = SDL_HapticOpenFromJoystick(
-					// 		SDL_GameControllerGetJoystick(pad));
-
-					// 	if(activeRoller == -1) {
-					// 		activeRoller = controllerNum;
-					// 		clearRollerState(&activeRollerState);
-					// 	}
-					// }
-					// break;
+					addRollers();
 
 				case SDL_CONTROLLERDEVICEREMOVED:
-					for(i = 0; i < NUM_ROLLERS && !exit; i++) {
-						if(pads[i] && !SDL_GameControllerGetAttached(pads[i])) {
-							pads[i] = NULL;
-							if(padHaptics[i]) {
-								SDL_HapticClose(padHaptics[i]);
-								padHaptics[i] = NULL;
-							}
-
-							numRollers--;
-							if(activeRoller == i) {
-								scrollThroughGamepads();
-							}
-							exit = 1;
-						}
-					}
-					// controllerNum = sdlEvent.cdevice.which;
-					// printf("ROLLER %d REMOVED!!!!\n", controllerNum);
-					// SDL_GameControllerClose(pads[controllerNum]);
-					// numRollers--;
-
-					// pads[controllerNum] = NULL;
-					// if(padHaptics[controllerNum]) {
-					// 	SDL_HapticClose(padHaptics[controllerNum]);
-					// 	padHaptics[controllerNum] = NULL;
-					// }
-
-					// if(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller])) == 
-					// 	controllerNum) {
-					// 	scrollThroughGamepads();
-					// }
-				 	// 	break;
+					removeRollers();
 
 				case SDL_CONTROLLERBUTTONDOWN:
 					if(sdlEvent.cbutton.which == 
@@ -278,8 +263,6 @@ int main() {
 		        	return 0;
 		    }
 	    }
-
-		printf("%d rollers (%d is the active one)\n", numRollers, activeRoller);
 	    printTabBar();
 
     	if(activeRoller > -1) {
