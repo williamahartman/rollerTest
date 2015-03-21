@@ -4,7 +4,9 @@ RollerTest is a test application for SDL Gamepads. This was written to familiari
 
 The application allows you to view the states of the axes and buttons, as well as test vibration. The application supports controllers being connected as it runs.
 
-The application may not work correctly due to this bug: https://bugzilla.libsdl.org/show_bug.cgi?id=2309
+The program has only been tested on Linux, but might work properly on OSX and Windows.
+
+The application may not work correctly due to this SDL bug: https://bugzilla.libsdl.org/show_bug.cgi?id=2309
 To fix this, recompile SDL after applying the diff attached to the page.
 
 gamecontrollerdb.txt comes from gabomdq's repo here: https://github.com/gabomdq/SDL_GameControllerDB
