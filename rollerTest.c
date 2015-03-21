@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <SDL.h>
 
-#define BAR_SIZE 40
+#define SCREEN_WIDTH 80
 #define NUM_ROLLERS 4
 
 typedef struct rollerState {
@@ -131,7 +132,7 @@ void removeRollers() {
 
 void rumble(SDL_GameController* pad, SDL_Haptic* haptic) {
 	if (SDL_HapticRumbleInit(haptic) != 0) {
-		printf("Controller \"%s\" does not support rumble\n", SDL_GameControllerName(pad));
+		printf("\e[1mController \"%s\" does not support rumble!\e[0m\n", SDL_GameControllerName(pad));
 	   	return;
 	}
 
@@ -139,24 +140,24 @@ void rumble(SDL_GameController* pad, SDL_Haptic* haptic) {
 }
 
 void printAxis(int val, const char* axisName) {
-	int charAxisAmount = 32767 / (BAR_SIZE / 2);
+	int charAxisAmount = 32767 / (SCREEN_WIDTH / 4);
 
 	printf("%s [", axisName);
 	int i;
 
 	if(val < 0) {
-		for(i = 0; i < charAxisAmount * (BAR_SIZE / 2); i += charAxisAmount) {
-			if(charAxisAmount * (BAR_SIZE / 2) + val < i)
+		for(i = 0; i < charAxisAmount * (SCREEN_WIDTH / 4); i += charAxisAmount) {
+			if(charAxisAmount * (SCREEN_WIDTH / 4) + val < i)
 				printf("#");
 			else
 				printf(" ");
 		}
 		printf("|");
-		for(i = 0; i < (BAR_SIZE / 2); i++) {printf(" ");}
+		for(i = 0; i < (SCREEN_WIDTH / 4); i++) {printf(" ");}
 	} else {
-		for(i = 0; i < (BAR_SIZE / 2); i++) {printf(" ");}
+		for(i = 0; i < (SCREEN_WIDTH / 4); i++) {printf(" ");}
 		printf("|");
-		for(i = 0; i < charAxisAmount * (BAR_SIZE / 2); i += charAxisAmount) {
+		for(i = 0; i < charAxisAmount * (SCREEN_WIDTH / 4); i += charAxisAmount) {
 			if(i < val)
 				printf("#");
 			else
@@ -178,7 +179,10 @@ void printDPad(int up, int down, int left, int right) {
 }
 
 void printTabBar() {
-	int i;
+	int i, j;
+	int tabTextLen = (SCREEN_WIDTH / NUM_ROLLERS) - 7;
+	char tabText[tabTextLen];
+
 	printf("\e[7m");
 	if(numRollers == 0) {
 		printf(" No roller founds :( \n  Plug 'em in baby!  \n");	
@@ -187,13 +191,17 @@ void printTabBar() {
     		if(pads[i]) {
     			if(i == activeRoller)
     				printf("\e[27m");
-    	
-    			printf("  %s (#%d)  ", SDL_GameControllerName(pads[i]), i);
+
+    			strncpy(tabText, SDL_GameControllerName(pads[i]), tabTextLen);
+    			printf(" %s (#%d)", tabText, i);
 
 	    		if(i == activeRoller)
-	    			printf("\e[7m");
+	    			printf(" \e[7m");
+	    		else
+	    			printf("█");
     		} else {
-    			printf("               ");
+    			for(j = 0; j < tabTextLen + 7; j++)
+    				printf(" ");
     		}
     	}
     }
@@ -290,10 +298,10 @@ int main() {
 	    	printf("\n");
 
 	    	if(activeRollerState.rb && activeRollerState.lb) {
-	    		printf("Testing rumble.\t");
+	    		printf("Testing rumble.\n");
 	    		rumble(pads[activeRoller], padHaptics[activeRoller]);
 	    	} else {
-	    		printf("RB + LB to test rumble.\t");
+	    		printf("RB + LB to test rumble. ");
 	    	}
 
 	    	if(numRollers > 1) {
