@@ -16,88 +16,32 @@ typedef struct rollerState {
 
 void setRollerButton(RollerState* s, SDL_Event sdlEvent, short targetVal) {
 	switch(sdlEvent.cbutton.button) {
-		case SDL_CONTROLLER_BUTTON_A:
-			s->a = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_B:
-			s->b = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_X:
-			s->x = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_Y:
-			s->y = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_BACK:
-			s->back = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_GUIDE:
-			s->guide = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_START:
-			s->start = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
-			s->ls = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
-			s->rs = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-			s->lb = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-			s->rb = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_DPAD_UP:
-			s->dpUp = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-			s->dpDown = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-			s->dpLeft = targetVal;
-			break;
-
-		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-			s->dpRight = targetVal;
-			break;
+		case SDL_CONTROLLER_BUTTON_A: s->a = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_B: s->b = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_X: s->x = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_Y: s->y = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_BACK: s->back = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_GUIDE: s->guide = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_START: s->start = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_LEFTSTICK: s->ls = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK: s->rs = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: s->lb = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: s->rb = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_DPAD_UP: s->dpUp = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_DPAD_DOWN: s->dpDown = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_DPAD_LEFT: s->dpLeft = targetVal; break;
+		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: s->dpRight = targetVal; break;
 	}
 }
 
 void setRollerAxis(RollerState* s, SDL_Event sdlEvent) {
 	switch(sdlEvent.caxis.axis) {
-		case SDL_CONTROLLER_AXIS_LEFTX:
-			s->lsX = sdlEvent.caxis.value;
-			break;
-		case SDL_CONTROLLER_AXIS_LEFTY:
-			s->lsY = sdlEvent.caxis.value;
-			break;
-		case SDL_CONTROLLER_AXIS_RIGHTX:
-			s->rsX = sdlEvent.caxis.value;
-			break;
-		case SDL_CONTROLLER_AXIS_RIGHTY:
-			s->rsY = sdlEvent.caxis.value;
-			break;
-		case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-			s->lT = sdlEvent.caxis.value;
-			break;
-		case SDL_CONTROLLER_AXIS_TRIGGERRIGHT :
-			s->rT = sdlEvent.caxis.value;
-			break;
+		case SDL_CONTROLLER_AXIS_LEFTX: s->lsX = sdlEvent.caxis.value; break;
+		case SDL_CONTROLLER_AXIS_LEFTY: s->lsY = sdlEvent.caxis.value; break;
+		case SDL_CONTROLLER_AXIS_RIGHTX: s->rsX = sdlEvent.caxis.value; break;
+		case SDL_CONTROLLER_AXIS_RIGHTY: s->rsY = sdlEvent.caxis.value; break;
+		case SDL_CONTROLLER_AXIS_TRIGGERLEFT: s->lT = sdlEvent.caxis.value; break;
+		case SDL_CONTROLLER_AXIS_TRIGGERRIGHT: s->rT = sdlEvent.caxis.value; break;
 	}
 }
 
@@ -235,56 +179,92 @@ int main() {
 		SDL_Event sdlEvent;
 		int controllerNum;
 		SDL_GameController* pad;
+		int i;
+		int exit = 0;
 		while(SDL_PollEvent(&sdlEvent)) {
 			switch(sdlEvent.type) {
 				case SDL_CONTROLLERDEVICEADDED:
-					controllerNum = sdlEvent.cdevice.which;
-					pad = SDL_GameControllerOpen(controllerNum);
-
+					pad = SDL_GameControllerOpen(numRollers);
 					if(pad) {
-						numRollers++;
-						pads[controllerNum] = pad;
-						padHaptics[controllerNum] = SDL_HapticOpenFromJoystick(
-							SDL_GameControllerGetJoystick(pad));
+						for(i = 0; i < NUM_ROLLERS && !exit; i++) {
+							if(!pads[i]) {
+								pads[i] = pad;
+								padHaptics[i] = SDL_HapticOpenFromJoystick(SDL_GameControllerGetJoystick(pad));
+								numRollers++;
 
-						if(activeRoller == -1) {
-							activeRoller = controllerNum;
-							clearRollerState(&activeRollerState);
+								if(activeRoller == -1) {
+									activeRoller = i;
+								}
+								exit = 1;
+							}
 						}
 					}
-					break;
+					// controllerNum = sdlEvent.cdevice.which;
+					// pad = SDL_GameControllerOpen(controllerNum);
+
+					// if(pad) {
+					// 	numRollers++;
+					// 	pads[controllerNum] = pad;
+					// 	padHaptics[controllerNum] = SDL_HapticOpenFromJoystick(
+					// 		SDL_GameControllerGetJoystick(pad));
+
+					// 	if(activeRoller == -1) {
+					// 		activeRoller = controllerNum;
+					// 		clearRollerState(&activeRollerState);
+					// 	}
+					// }
+					// break;
 
 				case SDL_CONTROLLERDEVICEREMOVED:
-					controllerNum = sdlEvent.cdevice.which;
-					printf("ROLLER %d REMOVED!!!!\n", controllerNum);
-					SDL_GameControllerClose(pads[controllerNum]);
-					numRollers--;
+					for(i = 0; i < NUM_ROLLERS && !exit; i++) {
+						if(pads[i] && !SDL_GameControllerGetAttached(pads[i])) {
+							pads[i] = NULL;
+							if(padHaptics[i]) {
+								SDL_HapticClose(padHaptics[i]);
+								padHaptics[i] = NULL;
+							}
 
-					pads[controllerNum] = NULL;
-					if(padHaptics[controllerNum]) {
-						SDL_HapticClose(padHaptics[controllerNum]);
-						padHaptics[controllerNum] = NULL;
+							numRollers--;
+							if(activeRoller == i) {
+								scrollThroughGamepads();
+							}
+							exit = 1;
+						}
 					}
+					// controllerNum = sdlEvent.cdevice.which;
+					// printf("ROLLER %d REMOVED!!!!\n", controllerNum);
+					// SDL_GameControllerClose(pads[controllerNum]);
+					// numRollers--;
 
-					if(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller])) == controllerNum) {
-						scrollThroughGamepads();
-					}
-				 	break;
+					// pads[controllerNum] = NULL;
+					// if(padHaptics[controllerNum]) {
+					// 	SDL_HapticClose(padHaptics[controllerNum]);
+					// 	padHaptics[controllerNum] = NULL;
+					// }
+
+					// if(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller])) == 
+					// 	controllerNum) {
+					// 	scrollThroughGamepads();
+					// }
+				 	// 	break;
 
 				case SDL_CONTROLLERBUTTONDOWN:
-					if(sdlEvent.cbutton.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
+					if(sdlEvent.cbutton.which == 
+						SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
 						setRollerButton(&activeRollerState, sdlEvent, 1);
 					}
 					break;
 
 				case SDL_CONTROLLERBUTTONUP:
-					if(sdlEvent.cbutton.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
+					if(sdlEvent.cbutton.which == 
+						SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
 						setRollerButton(&activeRollerState, sdlEvent, 0);
 					}
 					break;
 
 				case SDL_CONTROLLERAXISMOTION:
-					if(sdlEvent.caxis.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
+					if(sdlEvent.caxis.which == 
+						SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pads[activeRoller]))) {
 						setRollerAxis(&activeRollerState, sdlEvent);
 					}
 					break;
