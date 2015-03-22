@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <SDL.h>
 
 #define SCREEN_WIDTH 80
@@ -208,7 +209,7 @@ void printTabBar() {
 	printf("\e[27m\n");
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | 
 	        		SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) != 0){
 		printf("Could not init SDL\n");
@@ -228,7 +229,11 @@ int main() {
 
 	while(1) {
 		SDL_Delay(16);
-		printf("\e[1;1H\e[2J");
+		#ifdef WINDOWS
+			system("cls");
+		#else
+			printf("\e[1;1H\e[2J");
+		#endif
 
 		SDL_Event sdlEvent;
 		int controllerNum;
